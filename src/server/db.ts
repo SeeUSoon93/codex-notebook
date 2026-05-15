@@ -24,10 +24,26 @@ export function getAppDataDir() {
 }
 
 export function getDefaultWorkspacePath() {
+  if (process.env.CODEX_NOTEBOOK_WORKSPACE_ROOT) {
+    return path.join(process.env.CODEX_NOTEBOOK_WORKSPACE_ROOT, "default");
+  }
   if (process.platform === "win32") {
     return path.join(os.homedir(), "CodexNotebook", "workspaces", "default");
   }
   return path.join(os.homedir(), "CodexNotebook", "workspaces", "default");
+}
+
+function ensureWritableDir(preferredPath: string) {
+  try {
+    fs.mkdirSync(preferredPath, { recursive: true });
+    return preferredPath;
+  } catch (error) {
+    const code = (error as NodeJS.ErrnoException).code;
+    if (code !== "EPERM" && code !== "EACCES") throw error;
+    const fallback = path.join(process.cwd(), ".codex-notebook", "workspaces", "default");
+    fs.mkdirSync(fallback, { recursive: true });
+    return fallback;
+  }
 }
 
 function rowToFolder(row: Record<string, unknown>): WorkspaceFolder {
@@ -188,8 +204,7 @@ export class NotebookDb {
   }
 
   ensureDefaultFolder() {
-    const defaultPath = getDefaultWorkspacePath();
-    fs.mkdirSync(defaultPath, { recursive: true });
+    const defaultPath = ensureWritableDir(getDefaultWorkspacePath());
     const existing = this.db.prepare("SELECT * FROM folders WHERE path = ?").get(defaultPath) as Record<string, unknown> | undefined;
     if (existing) return rowToFolder(existing);
 
@@ -299,6 +314,19 @@ export class NotebookDb {
     return this.getSession(id);
   }
 
+  deleteSession(id: string) {
+    const session = this.getSession(id);
+    if (!session) return undefined;
+    const attachments = this.listAttachments(id);
+    const tx = this.db.transaction(() => {
+      this.db.prepare("DELETE FROM attachments WHERE session_id = ?").run(id);
+      this.db.prepare("DELETE FROM messages WHERE session_id = ?").run(id);
+      this.db.prepare("DELETE FROM sessions WHERE id = ?").run(id);
+    });
+    tx();
+    return { session, attachments };
+  }
+
   listMessages(sessionId: string) {
     return (this.db.prepare("SELECT * FROM messages WHERE session_id = ? ORDER BY created_at ASC").all(sessionId) as Record<string, unknown>[]).map(rowToMessage);
   }
@@ -320,6 +348,15 @@ export class NotebookDb {
     `).run(row);
     this.db.prepare("UPDATE sessions SET updated_at = ? WHERE id = ?").run(timestamp, input.sessionId);
     return rowToMessage(row);
+  }
+
+  linkAttachmentsToMessage(sessionId: string, messageId: string, attachmentIds: string[]) {
+    if (attachmentIds.length === 0) return;
+    const update = this.db.prepare("UPDATE attachments SET message_id = ? WHERE session_id = ? AND id = ?");
+    const tx = this.db.transaction((ids: string[]) => {
+      ids.forEach((id) => update.run(messageId, sessionId, id));
+    });
+    tx(attachmentIds);
   }
 
   listAttachments(sessionId: string) {
@@ -350,6 +387,13 @@ export class NotebookDb {
       VALUES (@id, @session_id, @message_id, @type, @filename, @file_path, @thumbnail_path, @mime_type, @size, @created_at)
     `).run(row);
     return rowToAttachment(row);
+  }
+
+  deleteAttachment(id: string) {
+    const attachment = this.getAttachment(id);
+    if (!attachment) return undefined;
+    this.db.prepare("DELETE FROM attachments WHERE id = ?").run(id);
+    return attachment;
   }
 
   getSettings() {

@@ -44,9 +44,14 @@ codex login status
 - 가운데 채팅 UI와 가운데 영역 하단 터미널
 - xterm.js + node-pty 기반 로컬 터미널
 - Codex CLI 비대화형 실행 스트리밍
-- `/status` 출력 파싱 카드
-- 이미지/base64 inline 렌더링 차단
+- Codex app-server 상태 조회 기반 계정/한도 카드와 30초 자동 새로고침
+- 이미지/base64 inline 렌더링 차단 및 `data:image/...base64` attachment 저장
+- 이미지 카드의 원본 열기, 파일 위치 열기, 경로 복사, 삭제
 - 첨부 파일을 workspace의 `.codex-notebook/attachments/{sessionId}` 에 저장
 - 패널 폭/터미널 높이 드래그 조절
 - 패널 아이콘 접기/펼치기
+- 다크/라이트 모드 전환
+- OS 폴더 선택창으로 workspace 추가
+- `~/.codex/skills`의 스킬 목록 표시와 `$스킬명` 태그 입력
 - 한글/터미널/코드/마크다운 폰트 설정 저장
+- 단축키: `Ctrl/Cmd + Enter` 보내기, `Ctrl/Cmd + \`` 터미널 토글, `Ctrl/Cmd + K` 세션 검색, `Esc` 모달 닫기

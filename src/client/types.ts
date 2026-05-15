@@ -26,6 +26,8 @@ export type ChatMessage = {
   sessionId: string;
   role: "user" | "assistant" | "system";
   content: string;
+  attachmentIds?: string[];
+  durationMs?: number;
   collapsed: boolean;
   createdAt: string;
 };
@@ -48,14 +50,24 @@ export type SkillCard = {
   title: string;
   description: string;
   prompt: string;
+  source?: "preset" | "skill" | "plugin";
+  sourcePath?: string;
 };
 
 export type ParsedCodexStatus = {
   account?: string;
+  planType?: string;
+  model?: string;
+  directory?: string;
+  contextLeftPercent?: number;
+  note?: string;
+  source?: "app-server" | "tui";
   limits: Array<{
     label: string;
     leftPercent: number;
+    usedPercent?: number;
     resetsAt: string;
+    resetsAtIso?: string;
   }>;
   raw: string;
 };

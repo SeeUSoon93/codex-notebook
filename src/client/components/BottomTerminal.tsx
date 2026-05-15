@@ -6,9 +6,10 @@ type Props = {
   sessionId?: string;
   open: boolean;
   collapsed: boolean;
+  theme: "dark" | "light";
 };
 
-export function BottomTerminal({ sessionId, open, collapsed }: Props) {
+export function BottomTerminal({ sessionId, open, collapsed, theme }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const terminalRef = useRef<Terminal>();
   const fitRef = useRef<FitAddon>();
@@ -17,14 +18,25 @@ export function BottomTerminal({ sessionId, open, collapsed }: Props) {
   useEffect(() => {
     if (!open || collapsed || !sessionId || !containerRef.current) return;
 
+    const terminalFont =
+      getComputedStyle(document.documentElement).getPropertyValue("--font-terminal").trim() || "\"Cascadia Mono\"";
     const terminal = new Terminal({
       cursorBlink: true,
-      fontFamily: "var(--font-terminal)",
+      fontFamily: `${terminalFont}, "Cascadia Mono", Consolas, monospace`,
       fontSize: 13,
-      theme: {
-        background: "#111318",
-        foreground: "#d7dde8"
+      theme:
+        theme === "dark"
+          ? { background: "#111318", foreground: "#d7dde8", cursor: "#e6eaf2", cursorAccent: "#111318" }
+          : { background: "#f8fafc", foreground: "#0f172a", cursor: "#0f172a", cursorAccent: "#ffffff", selectionBackground: "#bfdbfe" }
+    });
+    terminal.attachCustomKeyEventHandler((event) => {
+      if (
+        event.type === "keydown" &&
+        ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(event.key)
+      ) {
+        event.preventDefault();
       }
+      return true;
     });
     const fit = new FitAddon();
     terminal.loadAddon(fit);
@@ -57,7 +69,17 @@ export function BottomTerminal({ sessionId, open, collapsed }: Props) {
       socket.close();
       terminal.dispose();
     };
-  }, [open, collapsed, sessionId]);
+  }, [open, collapsed, sessionId, theme]);
 
-  return <div className="terminal-view" ref={containerRef} />;
+  return (
+    <div
+      className="terminal-view"
+      ref={containerRef}
+      onKeyDownCapture={(event) => {
+        if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(event.key)) {
+          event.preventDefault();
+        }
+      }}
+    />
+  );
 }

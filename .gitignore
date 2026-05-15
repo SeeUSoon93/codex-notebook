@@ -1,0 +1,7 @@
+node_modules/
+dist/
+.codex-notebook/
+.codex-notebook-*.log
+.codex-notebook-*.html
+.codex-notebook-*.png
+npm-debug.log*

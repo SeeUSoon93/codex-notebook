@@ -1,3 +1,5 @@
+import { Type } from "lucide-react";
+
 type FontSettings = {
   fontKorean: string;
   fontTerminal: string;
@@ -21,7 +23,7 @@ export function FontSettingsModal({ settings, onChange }: Props) {
   return (
     <section className="panel-card">
       <div className="card-titlebar">
-        <strong>폰트</strong>
+        <strong><Type size={14} /> 폰트</strong>
       </div>
       <div className="font-fields">
         {fields.map((field) => (
